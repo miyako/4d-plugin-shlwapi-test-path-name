@@ -1,0 +1,11 @@
+﻿{
+	"name": "test-path-name",
+	"id": 20000,
+	"commands": [
+							 {
+							 "theme": "shlwapi",
+							 "syntax": "shlwapi Test path name(&T):L",
+							 "threadSafe":true
+							 }
+							 ]
+}
