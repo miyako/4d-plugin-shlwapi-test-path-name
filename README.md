@@ -32,7 +32,7 @@ path|TEXT|
 
 ``Test path name:C476``と同等のシステム関数を別スレッドでコールします。
 
-パスには[UNC](https://msdn.microsoft.com/ja-jp/library/gg465305.aspx)を含むシステムパス名を指定します。
+``path``に指定できるのは[UNC](https://msdn.microsoft.com/ja-jp/library/gg465305.aspx)を含むシステムパス名です。
 
 例：
 
