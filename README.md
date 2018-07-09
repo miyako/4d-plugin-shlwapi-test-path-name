@@ -27,3 +27,18 @@ Parameter|Type|Description
 ------------|------------|----
 result|LONGINT|``Is a document (1)``, ``Is a folder (0)`` or ``-43``
 path|TEXT|
+
+### About
+
+``Test path name:C476``と同等のシステム関数を別スレッドでコールします。
+
+パスには[UNC](https://msdn.microsoft.com/ja-jp/library/gg465305.aspx)を含むシステムパス名を指定します。
+
+例：
+
+* "\\\\?\\Z:\\共有フォルダー"
+* "Z:\\共有フォルダー"
+* "\\\\vmware-host\\Shared Folders\\共有フォルダー"
+* "\\\\?\\UNC\\共有サーバー\\Shared Folders\\共有フォルダー"
+
+https://docs.microsoft.com/ja-jp/windows/desktop/FileIO/naming-a-file
