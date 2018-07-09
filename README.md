@@ -38,7 +38,9 @@ path|TEXT|
 
 * "\\\\?\\Z:\\共有フォルダー"
 * "Z:\\共有フォルダー"
-* "\\\\vmware-host\\Shared Folders\\共有フォルダー"
-* "\\\\?\\UNC\\共有サーバー\\Shared Folders\\共有フォルダー"
+* "\\\\共有サーバー\\共有フォルダー"
+* "\\\\?\\UNC\\共有サーバー\\共有フォルダー"
+
+（リテラル文字列にエスケープシーケンスを含めた場合）
 
 https://docs.microsoft.com/ja-jp/windows/desktop/FileIO/naming-a-file
