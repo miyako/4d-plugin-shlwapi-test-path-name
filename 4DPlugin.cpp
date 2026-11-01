@@ -199,7 +199,7 @@ HANDLE createFmIn(test_path_name_param_t *params, DWORD a_len, DWORD b_len, DWOR
 	= sizeof(a_len)
 	+ sizeof(b_len)
 	+ sizeof(path_len)
-	+ a_len;
+	+ a_len
 	+ b_len
 	+ path_len;
 	
@@ -303,6 +303,14 @@ void getFmIn(test_path_name_param_t *params)
 			UnmapViewOfFile(bufIn);
 		}
 		CloseHandle(fmIn);
+	}
+	
+	/* the lengths come from a named mapping: make sure they fit, with room for the NUL */
+	if ((a_len > sizeof(params->a) - sizeof(wchar_t))
+		|| (b_len > sizeof(params->b) - sizeof(wchar_t))
+		|| (path_len > sizeof(params->path) - sizeof(wchar_t)))
+	{
+		success = FALSE;
 	}
 	
 	/* step 2: get value */
@@ -449,11 +457,15 @@ void waitForEvent(HANDLE h,
 {
 	BOOL exit = FALSE;
 	
+	/* also wake up when the thread ends without signalling a (it could not create its event or mapping) */
+	HANDLE handles[2] = {a, h};
+	
 	do {
-		switch (WaitForSingleObject(a, WAIT_TIMEOUT_MS))
+		switch (WaitForMultipleObjects(2, handles, FALSE, WAIT_TIMEOUT_MS))
 		{
 			case WAIT_ABANDONED:
 			case WAIT_FAILED:
+			case WAIT_OBJECT_0 + 1:/* thread ended without a result */
 				exit = TRUE;
 				break;
 			case WAIT_TIMEOUT:
@@ -517,6 +529,13 @@ void shlwapi_Test_path_name(sLONG_PTR *pResult, PackagePtr pParams)
 	wstring uuid_in, uuid_out;
 	generate_uuid_pair(uuid_in, uuid_out);
 	
+	/* without unique event names the thread can never be signalled; a path must fit param.path with its NUL */
+	if ((!uuid_in.length()) || (!uuid_out.length()) || (Param1.getUTF16Length() >= MAX_PATH_LENGTH))
+	{
+		returnValue.setReturn(pResult);
+		return;
+	}
+	
 	HANDLE a = CreateEvent(NULL, /* the handle cannot be inherited by child processes */
 												 TRUE, /* creates a manual-reset event object */
 												 FALSE, /* initial state of the event object */
@@ -548,6 +567,7 @@ void shlwapi_Test_path_name(sLONG_PTR *pResult, PackagePtr pParams)
 			if(h)
 			{
 				test_path_name_result_t result;
+				result.value = does_not_exist;
 				
 				waitForEvent(h,
 										 a,
