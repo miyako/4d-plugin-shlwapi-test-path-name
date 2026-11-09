@@ -1,5 +1,60 @@
 # 4d-plugin-shlwapi-test-path-name
 
+## Maintainer release workflow
+
+**Bump version** and **Build** are independent manual Actions. Select a branch in
+the Actions UI for either workflow; Build has no inputs. Bump version validates
+the selected immutable commit and current remote branch head, updates coordinated
+source versions for patch/minor/major, commits only those files, and pushes back to
+that branch without force and with follow-tags explicitly disabled. A concurrent
+branch update is rejected, not overwritten. It never tags, publishes or builds.
+
+Build checks out the selected `github.sha` in every job, reads strict `X.Y.Z`
+source metadata and rejects drift. It checks for an existing remote `vX.Y.Z` tag
+or any same-tag release (including drafts) using authenticated, paginated release
+lists. HTTP, network, malformed and partial-page failures stop the build.
+Publication is serialized repository-wide across branches, not limited to master.
+There are no push/tag/PR triggers in these workflows.
+
+The existing pipeline remains Windows x64 (MSBuild v143/Windows SDK 10.0), then
+universal macOS arm64/x86_64, cross-platform bundle assembly, Developer ID signing
+and verification, ZIP/DMG creation, accepted notarization of both assets and DMG
+stapling/validation. Existing signing/notary secret names are unchanged.
+Only after these gates pass does publication recheck availability, nonforce-push
+`vX.Y.Z` at the exact selected SHA and verify the remote tag. It then uses a
+create-only REST POST to create a new public, non-prerelease release named after
+the tag (empty notes, as before), followed by uploads of the original ZIP and
+stapled DMG without overwriting assets. It does not use a temporary draft or
+`gh release create`.
+
+**Recovery:** failures never delete, roll back, retry, patch or update remote
+tags, releases or assets. A failed POST may leave a tag; a failed/ambiguous POST or
+upload may leave a release and some assets. Inspect the Actions error and remote
+state before taking any manual recovery action. A rerun intentionally refuses any
+existing tag or same-tag release, including a draft; do not assume rerunning will
+repair a partial publication. Prefer a separately reviewed source-version bump
+and a new manual Build. No secret values are printed by these helpers.
+
+`MARKETING_VERSION` is authoritative, coordinated with `CURRENT_PROJECT_VERSION`,
+the source `Info.plist` short version (and bundle version if present), and both
+localized version strings in `English.lproj/InfoPlist.strings`. Recognized Xcode
+references to either coordinated variable are preserved in the plist.
+This migration keeps the existing authoritative **1.0.1**, repairing stale
+`CURRENT_PROJECT_VERSION` values (`1.0.0`) and localized strings (`1.0`) only.
+The bundled prebuilt plugin, SDK/toolchain versions, plist format `6.0`,
+`locversion.plist` counters and 4D database formats are not release-version inputs.
+The already published `v1.0.1` therefore cannot be rebuilt/published under that
+same tag; a future release needs a separately requested bump.
+
+Local regression checks (no native build, credentials or release dispatch):
+
+```sh
+python3 -B -m unittest discover -s .github/tests -v
+actionlint
+```
+
+---
+
 A Windows plugin command that does the same job as 4D's built-in `Test path name`: it tells you whether a path points to a folder, a document, or nothing. The difference is that the check runs on a separate Windows thread, using the Shell Lightweight API (`PathIsDirectory` and `PathFileExists` from `Shlwapi.dll`). While Windows tries to reach a slow or disconnected network share, the calling 4D process keeps yielding, so the rest of the application doesn't freeze. The result is a `Longint`.
 
 | Command | Returns | Purpose |
