@@ -55,6 +55,53 @@ actionlint
 
 ---
 
+## Shared helper string ownership
+
+The sole manifest signature is `shlwapi Test path name(&T):L` (dispatcher case
+1): scalar text input and a long-integer result, with no text-array or `&Y`
+parameters. Its `C_TEXT::fromParamAtIndex` copies the borrowed input into a
+`CUTF16String`. It does not invoke the picture or array helpers below.
+
+The tracked picture helpers are compiled by the native projects but are dormant
+for this command. `CPicture::fromFileAtPath` transfers its owned path to
+`args[0]`; only `PA_ClearVariable` disposes that allocation after the synchronous
+command. Both it and `CPicture::createCopy` initialize the string destination as
+undefined so the shallow setter cannot overwrite an allocated empty string.
+`createCopy` also converts the charset API's returned byte count to UTF-16 code
+units before constructing its string; a surrogate pair remains two code units.
+
+These rules follow this repository's bundled `4DPluginAPI.c` (`rev : v14`,
+header `v13`), not an assumed upstream SDK release. `PA_SetStringVariable`
+shallow-assigns the descriptor. `PA_SetStringInArray` disposes the old element
+and shallow-transfers the new descriptor only for an accepted destination.
+`ARRAY_TEXT` copies borrowed input content and transfers newly created output
+strings without a subsequent disposal; no normal-path array ownership change
+was needed.
+
+The local ownership regression compiles the complete bundled SDK and actual
+`C_PICTURE`, `C_TEXT`, `C_BLOB` and `ARRAY_TEXT` sources with an ownership-tracking
+host callback and AddressSanitizer/UndefinedBehaviorSanitizer:
+
+```sh
+python3 -B -m unittest discover -s .github/tests -p test_string_ownership.py -v
+```
+
+It requires macOS and Xcode; it skips elsewhere. It exercises repeated picture
+load/format conversion, synchronous command errors and command-parameter handle
+allocation failures, ASCII/BMP/surrogate-pair formats, independent callback
+strings, array read/copy/replacement/shrink/clear, rejected SDK insertions, and
+final string/handle cleanup. Pictures are opaque null stubs; it does not model
+picture refcounts/pixels, real 4D callbacks, string/array allocation failures,
+or Windows execution. The original size-unit bug causes an ASan buffer
+over-read; with only that correction applied, the original cleanup reports
+21 double disposals and 102 leaked strings over 20 iterations plus the
+command-parameter allocation-failure cases. All fixes produce
+zero double disposals, live strings and live handles. This is native shim
+evidence, not a reproduced Windows 4D command crash. No release configuration,
+signing, packaging or publication is involved.
+
+---
+
 A Windows plugin command that does the same job as 4D's built-in `Test path name`: it tells you whether a path points to a folder, a document, or nothing. The difference is that the check runs on a separate Windows thread, using the Shell Lightweight API (`PathIsDirectory` and `PathFileExists` from `Shlwapi.dll`). While Windows tries to reach a slow or disconnected network share, the calling 4D process keeps yielding, so the rest of the application doesn't freeze. The result is a `Longint`.
 
 | Command | Returns | Purpose |

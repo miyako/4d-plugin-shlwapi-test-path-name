@@ -430,7 +430,8 @@ class RepositoryTests(unittest.TestCase):
     def test_entire_suite_survives_temporary_source_bump(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
-            for path in (".github", "test-path-name.xcodeproj", "Info.plist", "English.lproj"):
+            for path in (".github", "4D Plugin API", "test-path-name.xcodeproj",
+                         "Info.plist", "English.lproj"):
                 source = ROOT / path
                 if source.is_dir():
                     shutil.copytree(source, target / path)
